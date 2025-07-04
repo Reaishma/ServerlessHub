@@ -1,0 +1,96 @@
+{
+  "name": "serverless-platform-infrastructure",
+  "version": "1.0.0",
+  "description": "Complete serverless platform infrastructure with AWS Lambda, API Gateway, and DynamoDB",
+  "main": "index.js",
+  "scripts": {
+    "build": "sam build",
+    "deploy": "sam deploy",
+    "deploy:guided": "sam deploy --guided",
+    "deploy:dev": "sam deploy --parameter-overrides Environment=dev",
+    "deploy:staging": "sam deploy --parameter-overrides Environment=staging",
+    "deploy:prod": "sam deploy --parameter-overrides Environment=prod",
+    "local": "sam local start-api --port 3001",
+    "local:lambda": "sam local invoke",
+    "validate": "sam validate",
+    "package": "sam package --output-template-file packaged-template.yaml",
+    "test": "npm run test:auth && npm run test:processor && npm run test:api",
+    "test:auth": "cd lambda-functions/user-authentication && npm test",
+    "test:processor": "cd lambda-functions/data-processor && npm test",
+    "test:api": "cd lambda-functions/api-handler && npm test",
+    "test:integration": "newman run tests/integration/api-tests.postman_collection.json",
+    "lint": "npm run lint:auth && npm run lint:processor && npm run lint:api",
+    "lint:auth": "cd lambda-functions/user-authentication && npm run lint",
+    "lint:processor": "cd lambda-functions/data-processor && npm run lint",
+    "lint:api": "cd lambda-functions/api-handler && npm run lint",
+    "clean": "rm -rf .aws-sam/ packaged-template.yaml",
+    "logs": "sam logs --stack-name serverless-platform-dev --tail",
+    "logs:auth": "aws logs tail /aws/lambda/serverless-platform-dev-user-auth --follow",
+    "logs:processor": "aws logs tail /aws/lambda/serverless-platform-dev-data-processor --follow",
+    "logs:api": "aws logs tail /aws/lambda/serverless-platform-dev-api-handler --follow",
+    "monitor": "aws cloudwatch get-metric-statistics --namespace AWS/Lambda --metric-name Invocations --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) --end-time $(date -u +%Y-%m-%dT%H:%M:%S) --period 300 --statistics Sum",
+    "destroy": "aws cloudformation delete-stack --stack-name serverless-platform-dev",
+    "setup": "npm run install:all && npm run validate && npm run build",
+    "install:all": "cd lambda-functions/user-authentication && npm install && cd ../data-processor && npm install && cd ../api-handler && npm install",
+    "update:deps": "cd lambda-functions/user-authentication && npm update && cd ../data-processor && npm update && cd ../api-handler && npm update"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Reaishma/serverless-platform"
+  },
+  "keywords": [
+    "aws",
+    "serverless",
+    "lambda",
+    "api-gateway",
+    "dynamodb",
+    "cloudformation",
+    "sam",
+    "infrastructure",
+    "platform",
+    "dashboard"
+  ],
+  "author": {
+    "name": "Reaishma N",
+    "email": "vra.9618@gmail.com",
+    "url": "https://github.com/Reaishma"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Reaishma/serverless-platform/issues"
+  },
+  "homepage": "https://github.com/Reaishma/serverless-platform#readme",
+  "devDependencies": {
+    "newman": "^6.0.0",
+    "aws-cli": "^2.15.0",
+    "sam-cli": "^1.100.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "sam": {
+    "template": "cloudformation/infrastructure.yaml",
+    "parameters": {
+      "Environment": "dev",
+      "ProjectName": "serverless-platform",
+      "ApiStageName": "v1",
+      "NotificationEmail": "vra.9618@gmail.com"
+    }
+  },
+  "config": {
+    "aws": {
+      "region": "us-east-1",
+      "profile": "default"
+    },
+    "deployment": {
+      "timeout": "30m",
+      "capabilities": ["CAPABILITY_IAM"],
+      "confirm-changeset": false
+    }
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/Reaishma"
+  }
+}
