@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serverless Platform Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Part 7: Main CSS Styles */
+        :root {
+            --gcp-primary-blue: #1a73e8;
+            --gcp-primary-blue-dark: #1557b0;
+            --gcp-success-green: #34a853;
+            --gcp-error-red: #ea4335;
+            --gcp-warning-yellow: #fbbc04;
+            --gcp-light-gray: #f8f9fa;
+            --gcp-border-gray: #e8eaed;
+            --gcp-text-gray: #202124;
+            --gcp-sidebar-width: 240px;
+            --gcp-header-height: 64px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--gcp-light-gray);
+            color: var(--gcp-text-gray);
+            line-height: 1.5;
+        }
+
+        /* Layout */
+        .gcp-dashboard {
+            display: grid;
+            grid-template-columns: var(--gcp-sidebar-width) 1fr; /* This ensures the sidebar takes its width */
+            grid-template-rows: var(--gcp-header-height) 1fr;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .gcp-header {
+            grid-column: 1 / -1;
+            background: white;
+            border-bottom: 1px solid var(--gcp-border-gray);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            z-index: 10; /* Ensure header is above other content if needed */
+        }
+
+        .gcp-header h1 {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: var(--gcp-primary-blue);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+        }
+
+        /* Sidebar */
+        .gcp-sidebar {
+            grid-row: 2 / 3; /* Ensure it's in the second row of the grid */
+            grid-column: 1 / 2; /* Ensure it's in the first column */
+            background: white;
+            border-right: 1px solid var(--gcp-border-gray);
+            overflow-y: auto;
+            z-index: 5; /* Ensure sidebar is visible */
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--gcp-border-gray);
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--gcp-primary-blue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-nav {
+            padding: 16px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            text-align: left;
+            font-size: 14px;
+            color: #5f6368;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-right: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: #f1f3f4;
+            color: var(--gcp-primary-blue);
+        }
+
+        .nav-item.active {
+            background: #e8f0fe;
+            color: var(--gcp-primary-blue);
+            border-right-color: var(--gcp-primary-blue);
+        }
+
+        .nav-item i {
+            width: 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            grid-row: 2 / 3; /* Ensure it's in the second row */
+            grid-column: 2 / 3; /* Ensure it's in the second column */
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .section {
+            display: none; /* Default hidden */
+        }
+
+        .section.active {
+            display: block; /* Only active section is shown */
+        }
+
+        .section-header {
+            margin-bottom: 24px;
+        }
+
+        .section-header h2 {
+            font-size: 28px;
+            font-weight: 400;
+            margin-bottom: 8px;
+        }
+
+        .section-header p {
+            color: #5f6368;
+            font-size: 16px;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--gcp-border-gray);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gcp-border-gray);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-header h3 {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid var(--gcp-border-gray);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 500;
+            color: var(--gcp-primary-blue);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #5f6368;
+            font-size: 14px;
+        }
+
+        /* Overview Grid */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 968px) {
+            .overview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Activity List */
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 16px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-service {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .activity-message {
+            color: #5f6368;
+            font-size: 14px;
+        }
+
+        .activity-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .activity-time {
+            color: #5f6368;
+            font-size: 12px;
+        }
+
+        /* System Health */
+        .health-metric {
+            margin-bottom: 20px;
+        }
+
+        .health-metric:last-child {
+            margin-bottom: 0;
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #f1f3f4;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gcp-primary-blue);
+            transition: width 0.3s;
+        }
+
+        .progress-fill.warning {
+            background: var(--gcp-warning-yellow);
+        }
+
+        .progress-fill.success {
+            background: var(--gcp-success-green);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge.success {
+            background: #e8f5e8;
+            color: var(--gcp-success-green);
+        }
+
+        .badge.warning {
+            background: #fef7e0;
+            color: #e37400;
+        }
+
+        .badge.error {
+            background: #fce8e6;
+            color: var(--gcp-error-red);
+        }
+
+        .badge.info {
+            background: #e8f0fe;
+            color: var(--gcp-primary-blue);
+        }
+
+        .badge.outline {
+            background: white;
+            color: #5f6368;
+            border: 1px solid var(--gcp-border-gray);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--gcp-primary-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--gcp-primary-blue-dark);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #5f6368;
+            border-color: var(--gcp-border-gray);
+        }
+
+        .btn-secondary:hover {
+            background: #f8f9fa;
+        }
+
+        .btn-danger {
+            background: var(--gcp-error-red);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d33b2c;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Forms */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--gcp-text-gray);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px;
+            border: 1px solid var(--gcp-border-gray);
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--gcp-primary-blue);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        table th {
+            font-weight: 500;
+            color: #5f6368;
+            font-size: 14px;
+        }
+
+        table td {
+            font-size: 14px;
+        }
+
+        table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .font-medium {
+            font-weight: 500;
+        }
+
+        /* Button Groups */
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 48px;
+            padding: 24px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--gcp-border-gray);
+            text-align: center;
+            color: #5f6368;
+            font-size: 14px;
+        }
+
+        .footer p {
+            margin-bottom: 8px;
+        }
+
+        .footer a {
+            color: var(--gcp-primary-blue);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .gcp-dashboard {
+                grid-template-columns: 1fr; /* Stack header, sidebar, main content vertically */
+                grid-template-rows: var(--gcp-header-height) auto 1fr;
+            }
+            
+            .gcp-sidebar {
+                grid-row: 2; /* Sidebar becomes the second row */
+                grid-column: 1; /* Occupy full width */
+                border-right: none;
+                border-bottom: 1px solid var(--gcp-border-gray);
+            }
+            
+            .main-content {
+                grid-row: 3; /* Main content becomes the third row */
+                grid-column: 1; /* Occupy full width */
+            }
+
+            .sidebar-nav {
+                display: flex;
+                overflow-x: auto; /* Enable horizontal scrolling for nav items */
+                padding: 8px;
+                justify-content: flex-start; /* Align items to start */
+            }
+            
+            .nav-item {
+                white-space: nowrap; /* Prevent nav items from wrapping */
+                border-right: none;
+                border-bottom: 2px solid transparent;
+            }
+            
+            .nav-item.active {
+                border-right: none;
+                border-bottom-color: var(--gcp-primary-blue);
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Part 8: Additional CSS for Firestore, Logging, and IAM */
+
+        /* Firestore Specific Styles */
+        .firestore-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 968px) {
+            .firestore-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .collection-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .collection-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid var(--gcp-border-gray);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .collection-item:hover {
+            background: #f8f9fa;
+        }
+
+        .collection-item.active {
+            background: #e8f0fe;
+            border-color: var(--gcp-primary-blue);
+        }
+
+        .collection-name {
+            font-weight: 500;
+        }
+
+        .document-count {
+            color: #5f6368;
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        /* Logging Specific Styles */
+        .log-container {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            border-radius: 6px;
+            padding: 16px;
+        }
+
+        .log-entry {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            color: #e8e8e8;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .log-timestamp {
+            color: #888;
+        }
+
+        .log-level {
+            font-weight: bold;
+            margin: 0 8px;
+        }
+
+        .log-level.info {
+            color: #4fc3f7;
+        }
+
+        .log-level.warning {
+            color: #ffb74d;
+        }
+
+        .log-level.error {
+            color: #f44336;
+        }
+
+        .log-level.debug {
+            color: #9e9e9e;
+        }
+
+        .log-service {
+            color: #a5d6a7;
+        }
+
+        /* IAM Specific Styles */
+        .iam-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 968px) {
+            .iam-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .security-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .security-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+        }
+
+        .security-section h4 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--gcp-text-gray);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--gcp-primary-blue);
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: 1px solid var(--gcp-border-gray);
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            max-width: 400px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--gcp-success-green);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--gcp-error-red);
+        }
+
+        .toast.warning {
+            border-left: 4px solid var(--gcp-warning-yellow);
+        }
+
+        .toast .toast-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .toast .toast-message {
+            color: #5f6368;
+            font-size: 14px;
+        }
+
+        .toast .toast-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #5f6368;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--gcp-primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Code Editor Styles */
+        .code-editor {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .code-editor:focus {
+            border-color: var(--gcp-primary-blue);
+            outline: none;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h3 {
+            margin-bottom: 16px;
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        /* Status Indicators */
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-dot.success {
+            background: var(--gcp-success-green);
+        }
+
+        .status-dot.warning {
+            background: var(--gcp-warning-yellow);
+        }
+
+        .status-dot.error {
+            background: var(--gcp-error-red);
+        }
+
+        /* Utilities */
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .mt-4 {
+            margin-top: 16px;
+        }
+
+        .mb-4 {
+            margin-bottom: 16px;
+        }
+
+        .ml-2 {
+            margin-left: 8px;
+        }
+
+        .mr-2 {
+            margin-right: 8px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .visible {
+            display: block;
+        }
+
+        /* Dark mode support (optional) */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --gcp-light-gray: #202124;
+                --gcp-text-gray: #e8eaed;
+                --gcp-border-gray: #3c4043;
+            }
+            
+            body {
+                background-color: var(--gcp-light-gray);
+                color: var(--gcp-text-gray);
+            }
+            
+            .card,
+            .gcp-header,
+            .gcp-sidebar,
+            .stat-card {
+                background: #303134;
+                border-color: var(--gcp-border-gray);
+            }
+            
+            .nav-item:hover {
+                background: #3c4043;
+            }
+            
+            .nav-item.active {
+                background: #1a73e8;
+                color: white;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="gcp-dashboard">
+        <header class="gcp-header">
+            <h1>Serverless Platform Dashboard</h1>
+            <div class="user-info">
+                <span>Reaishma N</span>
+                <div class="user-avatar">R</div>
+            </div>
+        </header>
+
+        <aside class="gcp-sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-cloud"></i> Cloud Console</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-section="overview">
+                    <i class="fas fa-chart-bar"></i> Overview
+                </button>
+                <button class="nav-item" data-section="functions">
+                    <i class="fas fa-code"></i> Cloud Functions
+                </button>
+                <button class="nav-item" data-section="endpoints">
+                    <i class="fas fa-plug"></i> Cloud Endpoints
+                </button>
+                <button class="nav-item" data-section="firestore">
+                    <i class="fas fa-database"></i> Firestore
+                </button>
+                <button class="nav-item" data-section="logging">
+                    <i class="fas fa-file-alt"></i> Logging
+                </button>
+                <button class="nav-item" data-section="iam">
+                    <i class="fas fa-shield-alt"></i> IAM & Admin
+                </button>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <section id="overview" class="section active">
+                <div class="section-header">
+                    <h2>Platform Overview</h2>
+                    <p>Monitor your serverless platform resources and performance</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">4</div>
+                        <div class="stat-label">Active Functions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">8</div>
+                        <div class="stat-label">API Endpoints</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">2.4k</div>
+                        <div class="stat-label">Database Operations</div>
+                    </div>
+                </div>
+
+                <div class="overview-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Recent Activity</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-list" id="activity-list">
+                                <div class="activity-item">
+                                    <div class="activity-content">
+                                        <div class="activity-service">Cloud Functions</div>
+                                        <div class="activity-message">Function 'user-authentication' deployed successfully</div>
+                                    </div>
+                                    <div class="activity-meta">
+                                        <span class="badge success">Success</span>
+                                        <span class="activity-time">2:30 PM</span>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-content">
+                                        <div class="activity-service">Cloud Endpoints</div>
+                                        <div class="activity-message">API endpoint '/api/data/export' response time exceeded 2s threshold</div>
+                                    </div>
+                                    <div class="activity-meta">
+                                        <span class="badge warning">Warning</span>
+                                        <span class="activity-time">2:25 PM</span>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-content">
+                                        <div class="activity-service">Cloud Firestore</div>
+                                        <div class="activity-message">Collection 'users' created successfully</div>
+                                    </div>
+                                    <div class="activity-meta">
+                                        <span class="badge success">Success</span>
+                                        <span class="activity-time">2:20 PM</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>System Health</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="health-metric">
+                                <div class="metric-header">
+                                    <span>CPU Usage</span>
+                                    <span>42%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 42%"></div>
+                                </div>
+                            </div>
+                            <div class="health-metric">
+                                <div class="metric-header">
+                                    <span>Memory Usage</span>
+                                    <span>68%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill warning" style="width: 68%"></div>
+                                </div>
+                            </div>
+                            <div class="health-metric">
+                                <div class="metric-header">
+                                    <span>Storage Usage</span>
+                                    <span>24%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill success" style="width: 24%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="functions" class="section">
+                <div class="section-header">
+                    <h2>Cloud Functions</h2>
+                    <p>Manage and deploy serverless functions</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Create New Function</h3>
+                        <button class="btn btn-primary" onclick="deployFunction()">
+                            <i class="fas fa-rocket"></i> Deploy Function
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Function Name</label>
+                                <input type="text" id="functionName" placeholder="my-function">
+                            </div>
+                            <div class="form-group">
+                                <label>Runtime</label>
+                                <select id="runtime">
+                                    <option>Node.js 18</option>
+                                    <option>Python 3.9</option>
+                                    <option>Go 1.19</option>
+                                    <option>Java 11</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Trigger Type</label>
+                                <select id="trigger">
+                                    <option>HTTP Trigger</option>
+                                    <option>Cloud Storage</option>
+                                    <option>Cloud Pub/Sub</option>
+                                    <option>Cloud Firestore</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Source Code</label>
+                                <textarea id="functionCode" rows="8" placeholder="exports.helloWorld = (req, res) => {
+  res.status(200).send('Hello, World!');
+};"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Deployed Functions</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="functions-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Runtime</th>
+                                        <th>Trigger</th>
+                                        <th>Status</th>
+                                        <th>Last Deployed</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="functions-tbody">
+                                    <tr>
+                                        <td class="font-medium">user-authentication</td>
+                                        <td>Node.js 18</td>
+                                        <td>HTTP</td>
+                                        <td><span class="badge success">Active</span></td>
+                                        <td>Dec 3, 2024, 2:30 PM</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-secondary" onclick="testFunction('user-authentication')">
+                                                <i class="fas fa-play"></i> Test
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteFunction(1)">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-medium">data-processor</td>
+                                        <td>Python 3.9</td>
+                                        <td>Cloud Storage</td>
+                                        <td><span class="badge success">Active</span></td>
+                                        <td>Dec 3, 2024, 1:15 PM</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-secondary" onclick="testFunction('data-processor')">
+                                                <i class="fas fa-play"></i> Test
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteFunction(2)">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="endpoints" class="section">
+                <div class="section-header">
+                    <h2>Cloud Endpoints</h2>
+                    <p>Manage API endpoints and monitor traffic</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>API Testing Console</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>HTTP Method</label>
+                                <select id="apiMethod">
+                                    <option>GET</option>
+                                    <option>POST</option>
+                                    <option>PUT</option>
+                                    <option>DELETE</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Endpoint URL</label>
+                                <input type="text" id="apiUrl" placeholder="https://api.example.com/users">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Request Headers</label>
+                                <textarea id="apiHeaders" rows="3" placeholder="Content-Type: application/json
+Authorization: Bearer token"></textarea>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Request Body</label>
+                                <textarea id="apiBody" rows="5" placeholder='{"name": "John Doe", "email": "john@example.com"}'></textarea>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="testAPI()">
+                            <i class="fas fa-play"></i> Send Request
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>API Endpoints</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="endpoints-table">
+                                <thead>
+                                    <tr>
+                                        <th>Endpoint</th>
+                                        <th>Method</th>
+                                        <th>Status</th>
+                                        <th>Requests/min</th>
+                                        <th>Avg Response Time</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="endpoints-tbody">
+                                    <tr>
+                                        <td class="font-medium">/api/users</td>
+                                        <td><span class="badge outline">GET</span></td>
+                                        <td><span class="badge success">Healthy</span></td>
+                                        <td>45</td>
+                                        <td>120ms</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-secondary">
+                                                <i class="fas fa-chart-line"></i> Monitor
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-medium">/api/auth/login</td>
+                                        <td><span class="badge outline">POST</span></td>
+                                        <td><span class="badge success">Healthy</span></td>
+                                        <td>12</td>
+                                        <td>200ms</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-secondary">
+                                                <i class="fas fa-chart-line"></i> Monitor
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-medium">/api/data/export</td>
+                                        <td><span class="badge outline">GET</span></td>
+                                        <td><span class="badge warning">Slow</span></td>
+                                        <td>8</td>
+                                        <td>2.1s</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-secondary">
+                                                <i class="fas fa-chart-line"></i> Monitor
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="firestore" class="section">
+                <div class="section-header">
+                    <h2>Cloud Firestore</h2>
+                    <p>NoSQL document database operations</p>
+                </div>
+
+                <div class="firestore-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Collections</h3>
+                            <button class="btn btn-primary btn-sm" onclick="createCollection()">
+                                <i class="fas fa-plus"></i> New Collection
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="collection-list" id="collection-list">
+                                <div class="collection-item active" onclick="selectCollection('users', 15)">
+                                    <i class="fas fa-folder"></i>
+                                    <span class="collection-name">users</span>
+                                    <span class="document-count">(15 documents)</span>
+                                </div>
+                                <div class="collection-item" onclick="selectCollection('products', 8)">
+                                    <i class="fas fa-folder"></i>
+                                    <span class="collection-name">products</span>
+                                    <span class="document-count">(8 documents)</span>
+                                </div>
+                                <div class="collection-item" onclick="selectCollection('orders', 32)">
+                                    <i class="fas fa-folder"></i>
+                                    <span class="collection-name">orders</span>
+                                    <span class="document-count">(32 documents)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Document Operations</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Collection</label>
+                                <input type="text" id="selectedCollection" placeholder="Select a collection" readonly value="users">
+                            </div>
+                            <div class="form-group">
+                                <label>Document ID</label>
+                                <input type="text" id="documentId" placeholder="Auto-generate or specify">
+                            </div>
+                            <div class="form-group">
+                                <label>Document Data (JSON)</label>
+                                <textarea id="documentData" rows="8" placeholder='{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "createdAt": "2023-12-01T10:00:00Z"
+}'></textarea>
+                            </div>
+                            <div class="button-group">
+                                <button class="btn btn-primary" onclick="createDocument()">
+                                    <i class="fas fa-plus"></i> Create
+                                </button>
+                                <button class="btn btn-secondary">
+                                    <i class="fas fa-search"></i> Read
+                                </button>
+                                <button class="btn btn-secondary">
+                                    <i class="fas fa-edit"></i> Update
+                                </button>
+                                <button class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Query Builder</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Field</label>
+                                <input type="text" id="queryField" placeholder="email">
+                            </div>
+                            <div class="form-group">
+                                <label>Operator</label>
+                                <select id="queryOperator">
+                                    <option>==</option>
+                                    <option>!=</option>
+                                    <option>&gt;</option>
+                                    <option>&gt;=</option>
+                                    <option>&lt;</option>
+                                    <option>&lt;=</option>
+                                    <option>array-contains</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Value</label>
+                                <input type="text" id="queryValue" placeholder="john@example.com">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="executeQuery()">
+                            <i class="fas fa-play"></i> Execute Query
+                        </button>
+                    </div>
+                </div>
+            </section>
+            <section id="logging" class="section">
+                <div class="section-header">
+                    <h2>Cloud Logging</h2>
+                    <p>View and filter application logs</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Log Filters</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Service</label>
+                                <select id="serviceFilter">
+                                    <option>All Services</option>
+                                    <option>Cloud Functions</option>
+                                    <option>Cloud Endpoints</option>
+                                    <option>Cloud Firestore</option>
+                                    <option>IAM</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Log Level</label>
+                                <select id="levelFilter">
+                                    <option>All Levels</option>
+                                    <option>ERROR</option>
+                                    <option>WARNING</option>
+                                    <option>INFO</option>
+                                    <option>DEBUG</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Time Range</label>
+                                <select id="timeRange">
+                                    <option>Last 1 hour</option>
+                                    <option>Last 6 hours</option>
+                                    <option>Last 24 hours</option>
+                                    <option>Last 7 days</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="applyLogFilters()">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Log Entries</h3>
+                        <button class="btn btn-secondary" onclick="refreshLogs()">
+                            <i class="fas fa-redo"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="log-container" id="log-container">
+                            <div class="log-entry">
+                                <span class="log-timestamp">2024-12-03 14:30:25</span>
+                                <span class="log-level info">[INFO]</span>
+                                <span class="log-service">Cloud Functions:</span>
+                                Function 'user-authentication' deployed successfully
+                            </div>
+                            <div class="log-entry">
+                                <span class="log-timestamp">2024-12-03 14:25:18</span>
+                                <span class="log-level warning">[WARNING]</span>
+                                <span class="log-service">Cloud Endpoints:</span>
+                                API endpoint '/api/data/export' response time exceeded 2s threshold
+                            </div>
+                            <div class="log-entry">
+                                <span class="log-timestamp">2024-12-03 14:20:45</span>
+                                <span class="log-level info">[INFO]</span>
+                                <span class="log-service">Cloud Firestore:</span>
+                                Collection 'users' created successfully
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+<section id="iam" class="section">
+    <div class="section-header">
+        <h2>Identity & Access Management</h2>
+        <p>Manage user permissions and security policies</p>
+    </div>
+
+    <div class="iam-grid">
+        <div class="card">
+            <div class="card-header">
+                <h3>Users & Permissions</h3>
+                <button class="btn btn-primary btn-sm" onclick="addUser()">
+                    <i class="fas fa-user-plus"></i> Add User
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody">
+                            <tr>
+                                <td>vra.9618@gmail.com</td>
+                                <td><span class="badge error">Owner</span></td>
+                                <td><span class="badge success">Active</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>developer@example.com</td>
+                                <td><span class="badge warning">Editor</span></td>
+                                <td><span class="badge success">Active</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h3>Service Accounts</h3>
+                <button class="btn btn-primary btn-sm" onclick="createServiceAccount()">
+                    <i class="fas fa-cog"></i> Create Account
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table id="service-accounts-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="service-accounts-tbody">
+                            <tr>
+                                <td>function-executor</td>
+                                <td>function-executor@project.iam.gserviceaccount.com</td>
+                                <td>
+                                    <button class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-key"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3>Security Policies</h3>
+        </div>
+        <div class="card-body">
+            <div class="security-grid">
+                <div class="security-section">
+                    <h4>Authentication</h4>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" checked> Require MFA for admin accounts
+                        </label>
+                        <label>
+                            <input type="checkbox" checked> Force password rotation (90 days)
+                        </label>
+                        <label>
+                            <input type="checkbox"> Allow external OAuth providers
+                        </label>
+                    </div>
+                </div>
+                <div class="security-section">
+                    <h4>Access Control</h4>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" checked> Enable audit logging
+                        </label>
+                        <label>
+                            <input type="checkbox" checked> Restrict API access by IP
+                        </label>
+                        <label>
+                            <input type="checkbox"> Enable cross-project access
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveSecurityPolicies()">
+                <i class="fas fa-save"></i> Save Policies
+            </button>
+        </div>
+    </div>
+</section>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <p><strong>Developer:</strong> Reaishma N | <strong>Email:</strong> vra.9618@gmail.com</p>
+        <p><strong>GitHub:</strong> <a href="https://github.com/Reaishma" target="_blank">https://github.com/Reaishma</a></p>
+        <p>This is a portfolio demonstration of a serverless platform interface simulating Google Cloud Platform services.</p>
+    </footer>
+
+    <script>
+        // Part 1: Toast Notification System
+        function showToast(message, type = 'info') {
+            const toastContainer = document.querySelector('.gcp-dashboard') || document.body; // Use dashboard or body for placement
+            const toast = document.createElement('div');
+            toast.classList.add('toast', type);
+            toast.innerHTML = `
+                <div class="toast-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                <div class="toast-message">${message}</div>
+                <button class="toast-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 5000); // Remove after 5 seconds
+        }
+
+        // Part 2: Section Navigation Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const navItems = document.querySelectorAll('.nav-item');
+            const sections = document.querySelectorAll('.section');
+            const mainContent = document.querySelector('.main-content'); // Get the main content area
+
+            function activateSection(sectionId) {
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                    // Ensure all sections are hidden by default unless active
+                    section.style.display = 'none'; 
+                });
+                navItems.forEach(item => item.classList.remove('active'));
+
+                const targetSection = document.getElementById(sectionId);
+                const targetNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                    targetSection.style.display = 'block'; // Make the active section visible
+                }
+                if (targetNavItem) {
+                    targetNavItem.classList.add('active');
+                }
+            }
+
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const sectionId = item.dataset.section;
+                    activateSection(sectionId);
+                });
+            });
+
+            // Initial load: activate the 'overview' section by default
+            activateSection('overview');
+        });
+
+        // Part 3: Cloud Functions
+        function deployFunction() {
+            const functionName = document.getElementById('functionName').value;
+            const runtime = document.getElementById('runtime').value;
+            const trigger = document.getElementById('trigger').value;
+            const functionCode = document.getElementById('functionCode').value;
+
+            if (!functionName || !functionCode) {
+                showToast('Function Name and Source Code are required!', 'error');
+                return;
+            }
+
+            const functionsTbody = document.getElementById('functions-tbody');
+            const newRow = functionsTbody.insertRow();
+            
+            newRow.innerHTML = `
+                <td class="font-medium">${functionName}</td>
+                <td>${runtime}</td>
+                <td>${trigger.split(' ')[0]}</td>
+                <td><span class="badge success">Deploying...</span></td>
+                <td>${new Date().toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="testFunction('${functionName}')">
+                        <i class="fas fa-play"></i> Test
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteFunction(this)">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </td>
+            `;
+
+            showToast(`Deploying function: ${functionName}`, 'info');
+
+            // Simulate deployment
+            setTimeout(() => {
+                const statusBadge = newRow.querySelector('.badge');
+                if (statusBadge) {
+                    statusBadge.textContent = 'Active';
+                    statusBadge.classList.remove('info');
+                    statusBadge.classList.add('success');
+                    showToast(`Function '${functionName}' deployed successfully!`, 'success');
+                }
+            }, 2000);
+
+            // Clear form
+            document.getElementById('functionName').value = '';
+            document.getElementById('functionCode').value = '';
+        }
+
+        function testFunction(functionName) {
+            showToast(`Simulating test for function: ${functionName}. Check logs for details.`, 'info');
+            // In a real app, this would trigger an actual test and show results
+        }
+
+        function deleteFunction(buttonElement) {
+            const row = buttonElement.closest('tr');
+            const functionName = row.children[0].textContent;
+            if (confirm(`Are you sure you want to delete function '${functionName}'?`)) {
+                row.remove();
+                showToast(`Function '${functionName}' deleted.`, 'error');
+            }
+        }
+        function testAPI() {
+            const apiMethod = document.getElementById('apiMethod').value;
+            const apiUrl = document.getElementById('apiUrl').value;
+            const apiHeaders = document.getElementById('apiHeaders').value;
+            const apiBody = document.getElementById('apiBody').value;
+
+            if (!apiUrl) {
+                showToast('Endpoint URL is required!', 'error');
+                return;
+            }
+
+            showToast(`Sending ${apiMethod} request to ${apiUrl}...`, 'info');
+
+            // Simulate API call and response
+            setTimeout(() => {
+                const isSuccess = Math.random() > 0.3; // 70% success rate
+                if (isSuccess) {
+                    showToast(`API call to ${apiUrl} successful! Status: 200 OK`, 'success');
+                } else {
+                    showToast(`API call to ${apiUrl} failed! Status: 500 Internal Server Error`, 'error');
+                }
+            }, 1500);
+        }
+
+        // Part 5: Firestore Operations
+        function selectCollection(collectionName, documentCount) {
+            document.getElementById('selectedCollection').value = collectionName;
+            
+            // Update active state in UI
+            document.querySelectorAll('.collection-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active'); // event.currentTarget refers to the clicked element
+
+            showToast(`Selected collection: ${collectionName} (${documentCount} documents)`, 'info');
+        }
+
+        function createCollection() {
+            const newCollectionName = prompt('Enter new collection name:');
+            if (newCollectionName) {
+                const collectionList = document.getElementById('collection-list');
+                const newItem = document.createElement('div');
+                newItem.classList.add('collection-item');
+                newItem.setAttribute('onclick', `selectCollection('${newCollectionName}', 0)`);
+                newItem.innerHTML = `
+                    <i class="fas fa-folder"></i>
+                    <span class="collection-name">${newCollectionName}</span>
+                    <span class="document-count">(0 documents)</span>
+                `;
+                collectionList.appendChild(newItem);
+                showToast(`Collection '${newCollectionName}' created!`, 'success');
+            }
+        }
+
+        function createDocument() {
+            const collectionName = document.getElementById('selectedCollection').value;
+            const documentId = document.getElementById('documentId').value;
+            const documentData = document.getElementById('documentData').value;
+
+            if (!collectionName) {
+                showToast('Please select a collection first!', 'error');
+                return;
+            }
+            if (!documentData) {
+                showToast('Document data cannot be empty!', 'error');
+                return;
+            }
+
+            try {
+                JSON.parse(documentData); // Validate JSON
+            } catch (e) {
+                showToast('Invalid JSON data for document!', 'error');
+                return;
+            }
+
+            showToast(`Creating document in '${collectionName}'...`, 'info');
+
+            setTimeout(() => {
+                const docIdentifier = documentId || 'auto-generated ID';
+                showToast(`Document '${docIdentifier}' created in '${collectionName}'!`, 'success');
+                // In a real app, you'd update the document count for the collection
+                document.getElementById('documentId').value = '';
+                document.getElementById('documentData').value = '';
+            }, 1500);
+        }
+
+        function executeQuery() {
+            const collectionName = document.getElementById('selectedCollection').value;
+            const queryField = document.getElementById('queryField').value;
+            const queryOperator = document.getElementById('queryOperator').value;
+            const queryValue = document.getElementById('queryValue').value;
+
+            if (!collectionName) {
+                showToast('Please select a collection first to query!', 'error');
+                return;
+            }
+            if (!queryField || !queryValue) {
+                showToast('Query field and value are required!', 'error');
+                return;
+            }
+
+            showToast(`Executing query on '${collectionName}': ${queryField} ${queryOperator} '${queryValue}'`, 'info');
+            // In a real app, this would perform a Firestore query and display results
+        }
+
+        // Part 6: Logging
+        function applyLogFilters() {
+            const service = document.getElementById('serviceFilter').value;
+            const level = document.getElementById('levelFilter').value;
+            const timeRange = document.getElementById('timeRange').value;
+            showToast(`Applying filters: Service=${service}, Level=${level}, Time=${timeRange}`, 'info');
+            // In a real app, this would re-fetch logs based on filters
+        }
+
+        function refreshLogs() {
+            showToast('Refreshing logs...', 'info');
+            // In a real app, this would re-fetch logs
+        }
+        function addUser() {
+            const userEmail = prompt('Enter new user email:');
+            if (userEmail) {
+                const usersTbody = document.getElementById('users-tbody');
+                const newRow = usersTbody.insertRow();
+                newRow.innerHTML = `
+                    <td>${userEmail}</td>
+                    <td><span class="badge info">Viewer</span></td>
+                    <td><span class="badge success">Active</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteUser(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                showToast(`User '${userEmail}' added.`, 'success');
+            }
+        }
+
+        function deleteUser(buttonElement) {
+            const row = buttonElement.closest('tr');
+            const userEmail = row.children[0].textContent;
+            if (confirm(`Are you sure you want to delete user '${userEmail}'?`)) {
+                row.remove();
+                showToast(`User '${userEmail}' deleted.`, 'error');
+            }
+        }
+
+        function createServiceAccount() {
+            const serviceAccountName = prompt('Enter new service account name:');
+            if (serviceAccountName) {
+                const serviceAccountsTbody = document.getElementById('service-accounts-tbody');
+                const newRow = serviceAccountsTbody.insertRow();
+                const serviceAccountEmail = `${serviceAccountName.toLowerCase().replace(/\s/g, '-')}-123@project.iam.gserviceaccount.com`;
+                newRow.innerHTML = `
+                    <td>${serviceAccountName}</td>
+                    <td>${serviceAccountEmail}</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary">
+                            <i class="fas fa-key"></i>
+                        </button>
+                        <button class="btn btn-sm btn-secondary">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteServiceAccount(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                showToast(`Service account '${serviceAccountName}' created.`, 'success');
+            }
+        }
+
+        function deleteServiceAccount(buttonElement) {
+            const row = buttonElement.closest('tr');
+            const accountName = row.children[0].textContent;
+            if (confirm(`Are you sure you want to delete service account '${accountName}'?`)) {
+                row.remove();
+                showToast(`Service account '${accountName}' deleted.`, 'error');
+            }
+        }
+
+        function saveSecurityPolicies() {
+            showToast('Security policies saved!', 'success');
+            // In a real app, this would send policy changes to the backend
+        }
+    </script>
+</body>
+</html>
