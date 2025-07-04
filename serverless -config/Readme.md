@@ -99,60 +99,6 @@ aws cloudformation deploy \
 
 ## 🔧 Configuration 
 
-
-- **User Authentication** - JWT-based authentication with secure password hashing
-- **Cloud Functions Management** - Deploy and manage serverless functions
-- **API Gateway** - RESTful API with comprehensive endpoint management
-- **Data Processing** - Automated data processing with S3 triggers
-- **Database Operations** - Full CRUD operations with DynamoDB
-- **Logging & Monitoring** - CloudWatch integration with custom alarms
-- **IAM & Security** - Role-based access control and security policies
-
-## 🏗️ Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   API Gateway   │    │ Lambda Functions│
-│   (React)       │◄──►│                 │◄──►│                 │
-│                 │    │ - Authentication│    │ - User Auth     │
-│                 │    │ - Rate Limiting │    │ - Data Processor│
-│                 │    │ - CORS Handling │    │ - API Handler   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │                        │
-                                ▼                        ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   CloudWatch    │    │   DynamoDB      │    │      S3         │
-│   - Monitoring  │    │   - Users       │    │   - Data Files  │
-│   - Alarms      │    │   - Functions   │    │   - Uploads     │
-│   - Logs        │    │   - Logs        │    │   - Archives    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-## 📁 Project Structure
-
-```
-serverless-config/
-├── lambda-functions/
-│   ├── user-authentication/     # JWT authentication & user management
-│   ├── data-processor/          # S3 event processing & data transformation
-│   └── api-handler/             # REST API endpoints handler
-├── api-gateway/
-│   └── api-gateway.yaml         # OpenAPI/Swagger specification
-├── cloudformation/
-│   └── infrastructure.yaml     # Complete AWS infrastructure
-└── README.md                    # This file
-```
-
-## 🛠️ Deployment
-
-### Prerequisites
-
-- AWS CLI configured with appropriate permissions
-- Node.js 18+ installed
-- SAM CLI installed
-- Docker (for local testing)
-
-
 ##  Environment Variables
 
 | Variable | Description | Required |
@@ -392,7 +338,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Reaishma N**
 - Email: vra.9618@gmail.com
 - GitHub: [@Reaishma](https://github.com/Reaishma)
-- Portfolio: [Your Portfolio URL]
+
 
 ## 🙏 Acknowledgments
 
