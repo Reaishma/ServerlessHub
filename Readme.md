@@ -269,7 +269,7 @@ Test external API endpoint
 }
 ```
 
-For complete API documentation, see [OpenAPI Specification](  serverless -config/api-gateway/api-gateway.yaml.)
+For complete API documentation, see [OpenAPI Specification](https://github.com/Reaishma/ServerlessHub/blob/main/serverless%20-config/api-gateway/api-gateway.yaml )
 
 ## 🔒 Security
 
