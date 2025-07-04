@@ -1,0 +1,79 @@
+{
+  "name": "data-processor-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function for data processing in the Serverless Platform Dashboard",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "deploy": "sam deploy",
+    "package": "zip -r function.zip . -x \"*.git*\" \"node_modules/.cache/*\" \"coverage/*\" \"*.test.js\"",
+    "local": "sam local start-api"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1490.0",
+    "csv-parser": "^3.0.0",
+    "sharp": "^0.32.6"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "eslint": "^8.55.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "aws-sdk-mock": "^5.8.0"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "serverless",
+    "data-processing",
+    "s3",
+    "dynamodb",
+    "nodejs"
+  ],
+  "author": {
+    "name": "Reaishma N",
+    "email": "vra.9618@gmail.com",
+    "url": "https://github.com/Reaishma"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Reaishma/serverless-platform"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "index.js",
+      "!node_modules/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
+    }
+  },
+  "eslintConfig": {
+    "extends": "standard",
+    "env": {
+      "node": true,
+      "jest": true
+    },
+    "rules": {
+      "no-console": "warn",
+      "prefer-const": "error",
+      "no-var": "error"
+    }
+  }
+}
