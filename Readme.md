@@ -31,7 +31,7 @@ A complete serverless platform simulating Google Cloud Platform services, built 
 
 **Dashboard Interface**: [View Live Demo]( https://reaishma.github.io/ServerlessHub/)
 
-**API Documentation**: [OpenAPI Specification](serverless -config/api-gateway/api-gateway.yaml )
+**API Documentation**: [OpenAPI Specification](./serverless -config/api-gateway/api-gateway.yaml )
 
 
 
