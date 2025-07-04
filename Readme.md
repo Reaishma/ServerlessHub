@@ -1,4 +1,4 @@
-# Serverless Platform Dashboard
+# ServerlessHub
 
 A complete serverless platform simulating Google Cloud Platform services, built with modern web technologies and AWS infrastructure. This project demonstrates enterprise-grade serverless architecture with comprehensive functionality for managing cloud functions, API endpoints, databases, logging, and security.
 
@@ -29,20 +29,11 @@ A complete serverless platform simulating Google Cloud Platform services, built 
 
 ## 🎯 Live Demo
 
-**Dashboard Interface**: [View Live Demo](https://your-deployment-url.com)
+**Dashboard Interface**: [View Live Demo]( https://reaishma.github.io/ServerlessHub/)
 
 **API Documentation**: [OpenAPI Specification](./serverless-config/api-gateway/api-gateway.yaml)
 
-## 📸 Screenshots
 
-### Dashboard Overview
-![Dashboard Overview](https://via.placeholder.com/800x400/1a73e8/ffffff?text=Serverless+Platform+Dashboard)
-
-### Cloud Functions Management
-![Cloud Functions](https://via.placeholder.com/800x400/34a853/ffffff?text=Cloud+Functions+Management)
-
-### Real-time Monitoring
-![Monitoring](https://via.placeholder.com/800x400/ea4335/ffffff?text=Real-time+Monitoring)
 
 ## 🏗️ Architecture
 
@@ -427,7 +418,8 @@ npm run deploy:container
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions!
+
 
 ### Development Process
 1. Fork the repository
@@ -445,7 +437,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE]( https://github.com/Reaishma/ServerlessHub/blob/main/LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -459,13 +451,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Reaishma N**
 - **Email**: vra.9618@gmail.com
 - **GitHub**: [@Reaishma](https://github.com/Reaishma)
-- **LinkedIn**: [Connect with me](https://linkedin.com/in/reaishma)
+
 
 ## 📞 Support
 
-- **Documentation**: [Full documentation](./docs/)
-- **Issues**: [GitHub Issues](https://github.com/Reaishma/serverless-platform/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Reaishma/serverless-platform/discussions)
+- For support and questions:
+- Create an issue in the repository
+- Review configuration examples in `/config`
 - **Email**: vra.9618@gmail.com
 
 ## Roadmap
