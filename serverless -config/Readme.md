@@ -98,9 +98,7 @@ aws cloudformation deploy \
 ```
 
 ## 🔧 Configuration 
-# Serverless mpleterplatformorm infform ormucture simulating Google Cloud Platform services, built with AWS Lambda, API Gateway, DynamoDB, and other AWS services.
 
-## 🚀 Features
 
 - **User Authentication** - JWT-based authentication with secure password hashing
 - **Cloud Functions Management** - Deploy and manage serverless functions
@@ -154,49 +152,6 @@ serverless-config/
 - SAM CLI installed
 - Docker (for local testing)
 
-### Quick Deployment
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Reaishma/serverless-platform
-   cd serverless-platform/serverless-config
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   cd lambda-functions/user-authentication && npm install
-   cd ../data-processor && npm install
-   cd ../api-handler && npm install
-   ```
-
-3. **Deploy infrastructure:**
-   ```bash
-   sam build
-   sam deploy --guided
-   ```
-
-4. **Configure environment variables:**
-   ```bash
-   # Set in AWS Lambda console or update cloudformation/infrastructure.yaml
-   JWT_SECRET=your-super-secret-jwt-key
-   NOTIFICATION_EMAIL=your-email@example.com
-   ```
-
-### Manual CloudFormation Deployment
-
-```bash
-aws cloudformation deploy \
-  --template-file cloudformation/infrastructure.yaml \
-  --stack-name serverless-platform-dev \
-  --capabilities CAPABILITY_IAM \
-  --parameter-overrides \
-    Environment=dev \
-    ProjectName=serverless-platform \
-    NotificationEmail=vra.9618@gmail.com \
-    JWTSecret=your-jwt-secret
-```
-
-## 🔧 Configuration 
 
 ##  Environment Variables
 
@@ -213,61 +168,7 @@ The API Gateway is configured with:
 - **Rate Limiting**: 1000 requests/second, 2000 burst
 - **CORS**: Enabled for all origins
 - **Authentication**: JWT Bearer token
-- **Validation**: Request/response validation
-- **Logging**: CloudWatch integration
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-
-#### POST /auth/login
-```json
-{
-  "email": "user@example.com",
-  "password": "securePassword"
-}
-```
-
-
-### Authentication Endpoints
-
-#### POST /auth/login
-```json
-{
-  "email": "user@example.com",
-  "password": "securePassword"
-}
-```
-
-#### POST /auth/register
-```json
-{
-  "email": "user@example.com",
-  "password": "securePassword",
-  "name": "User Name",
-  "role": "user"
-}
-```
-
-#### GET /auth/verify
-```
-Authorization: Bearer <jwt-token>
-```
-
-### Cloud Functions Endpoints
-
-#### GET /api/functions
-List all deployed functions
-
-#### POST /api/functions
-```json
-{
-  "name": "my-function",
-  "runtime": "Node.js 18",
-  "trigger": "HTTP",
-  "code": "exports.handler = (event) => { return 'Hello World'; }"
-}
-```
+- **Validation**: Request/response 
 
 #### PUT /api/functions/{functionId}
 Update function configuration
