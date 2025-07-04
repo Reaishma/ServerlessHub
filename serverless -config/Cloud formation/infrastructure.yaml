@@ -1,0 +1,819 @@
+# CloudFormation Template for Serverless Platform Infrastructure
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Serverless Platform Infrastructure
+  
+  Complete AWS infrastructure for the Serverless Platform Dashboard
+  including Lambda functions, API Gateway, DynamoDB tables, S3 buckets,
+  IAM roles, and monitoring resources.
+  
+  Developer: Reaishma N (vra.9618@gmail.com)
+  GitHub: https://github.com/Reaishma
+
+# Template Parameters
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name for resource naming and configuration
+
+  ProjectName:
+    Type: String
+    Default: serverless-platform
+    Description: Project name for resource naming
+
+  ApiStageName:
+    Type: String
+    Default: v1
+    Description: API Gateway stage name
+
+  JWTSecret:
+    Type: String
+    NoEcho: true
+    Default: your-jwt-secret-key
+    Description: JWT secret key for token generation
+
+  NotificationEmail:
+    Type: String
+    Default: vra.9618@gmail.com
+    Description: Email address for CloudWatch alarms and notifications
+
+# Global Configuration
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        PROJECT_NAME: !Ref ProjectName
+        JWT_SECRET: !Ref JWTSecret
+
+# Resources
+Resources:
+  # =====================================
+  # IAM ROLES AND POLICIES
+  # =====================================
+  
+  # Lambda Execution Role
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-lambda-execution-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProjectName}-${Environment}-*"
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "${DataBucket}/*"
+                  - !Ref DataBucket
+        - PolicyName: SNSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-${Environment}-*"
+
+  # API Gateway Role
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaInvokeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${Environment}-*"
+
+  # =====================================
+  # LAMBDA FUNCTIONS
+  # =====================================
+
+  # User Authentication Function
+  UserAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-user-auth"
+      CodeUri: ../lambda-functions/user-authentication/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          JWT_SECRET: !Ref JWTSecret
+      Events:
+        AuthApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessApi
+            Path: /auth/{proxy+}
+            Method: ANY
+      Tracing: Active
+      Tags:
+        Environment: !Ref Environment
+        Project: !Ref ProjectName
+        Component: Authentication
+
+  # Data Processor Function
+  DataProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-data-processor"
+      CodeUri: ../lambda-functions/data-processor/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 900  # 15 minutes for data processing
+      MemorySize: 1024
+      Environment:
+        Variables:
+          PROCESSED_DATA_TABLE: !Ref ProcessedDataTable
+          PROCESSING_LOGS_TABLE: !Ref LogsTable
+          PROCESSING_NOTIFICATIONS_TOPIC: !Ref ProcessingNotificationsTopic
+          ERROR_NOTIFICATIONS_TOPIC: !Ref ErrorNotificationsTopic
+      Events:
+        S3Event:
+          Type: S3
+          Properties:
+            Bucket: !Ref DataBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: uploads/
+        ProcessingSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+            Input: '{"action": "cleanup", "data": {"retentionDays": 30}}'
+      Tracing: Active
+      Tags:
+        Environment: !Ref Environment
+        Project: !Ref ProjectName
+        Component: DataProcessing
+
+  # API Handler Function
+  ApiHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-api-handler"
+      CodeUri: ../lambda-functions/api-handler/
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          FUNCTIONS_TABLE: !Ref FunctionsTable
+          ENDPOINTS_TABLE: !Ref EndpointsTable
+          COLLECTIONS_TABLE: !Ref CollectionsTable
+          DOCUMENTS_TABLE: !Ref DocumentsTable
+          LOGS_TABLE: !Ref LogsTable
+          IAM_USERS_TABLE: !Ref IamUsersTable
+          SERVICE_ACCOUNTS_TABLE: !Ref ServiceAccountsTable
+      Events:
+        ApiEvents:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessApi
+            Path: /api/{proxy+}
+            Method: ANY
+      Tracing: Active
+      Tags:
+        Environment: !Ref Environment
+        Project: !Ref ProjectName
+        Component: ApiHandler
+
+  # =====================================
+  # API GATEWAY
+  # =====================================
+
+  ServerlessApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-api"
+      StageName: !Ref ApiStageName
+      TracingEnabled: true
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        AllowCredentials: true
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: ../api-gateway/api-gateway.yaml
+      Variables:
+        LambdaFunctionName: !Ref ApiHandlerFunction
+      Tags:
+        Environment: !Ref Environment
+        Project: !Ref ProjectName
+        Component: ApiGateway
+
+  # API Gateway Usage Plan
+  ApiUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      UsagePlanName: !Sub "${ProjectName}-${Environment}-usage-plan"
+      ApiStages:
+        - ApiId: !Ref ServerlessApi
+          Stage: !Ref ApiStageName
+      Throttle:
+        RateLimit: 1000
+        BurstLimit: 2000
+      Quota:
+        Limit: 100000
+        Period: DAY
+
+  # API Key
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-api-key"
+      Description: API key for serverless platform
+      Enabled: true
+
+  # API Key Usage Plan Association
+  ApiKeyUsagePlan:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref ApiUsagePlan
+
+  # =====================================
+  # DYNAMODB TABLES
+  # =====================================
+
+  # Users Table
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-users"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Functions Table
+  FunctionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-functions"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: NameIndex
+          KeySchema:
+            - AttributeName: name
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Endpoints Table
+  EndpointsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-endpoints"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Collections Table
+  CollectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-collections"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: NameIndex
+          KeySchema:
+            - AttributeName: name
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Documents Table
+  DocumentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-documents"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: collectionId
+          AttributeType: S
+        - AttributeName: documentId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: CollectionIndex
+          KeySchema:
+            - AttributeName: collectionId
+              KeyType: HASH
+            - AttributeName: documentId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Logs Table
+  LogsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-logs"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+        - AttributeName: service
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: TimestampIndex
+          KeySchema:
+            - AttributeName: timestamp
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ServiceIndex
+          KeySchema:
+            - AttributeName: service
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Processed Data Table
+  ProcessedDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-processed-data"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: processedAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ProcessedAtIndex
+          KeySchema:
+            - AttributeName: processedAt
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # IAM Users Table
+  IamUsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-iam-users"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: EmailIndex
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+            NotificationEmailey: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Service Accounts Table
+  ServiceAccountsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-service-accounts"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: NameIndex
+          KeySchema:
+            - AttributeName: name
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # =====================================
+  # S3 BUCKETS
+  # =====================================
+
+  # Data Bucket
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ProjectName}-${Environment}-data-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+          - Id: ArchiveOldData
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 90
+                StorageClass: GLACIER
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt DataProcessorFunction.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: uploads/
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # S3 Bucket Policy
+  DataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DataBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt LambdaExecutionRole.Arn
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+            Resource: !Sub "${DataBucket}/*"
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt LambdaExecutionRole.Arn
+            Action:
+              - s3:ListBucket
+            Resource: !Ref DataBucket
+
+  # =====================================
+  # SNS TOPICS
+  # =====================================
+
+  # Processing Notifications Topic
+  ProcessingNotificationsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${ProjectName}-${Environment}-processing-notifications"
+      DisplayName: Processing Notifications
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref NotificationEmail
+
+  # Error Notifications Topic
+  ErrorNotificationsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${ProjectName}-${Environment}-error-notifications"
+      DisplayName: Error Notifications
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref NotificationEmail
+
+  # =====================================
+  # CLOUDWATCH ALARMS
+  # =====================================
+
+  # Lambda Error Alarm
+  LambdaErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-lambda-errors"
+      AlarmDescription: Lambda function errors
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref ErrorNotificationsTopic
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ApiHandlerFunction
+
+  # API Gateway 4XX Errors
+  ApiGateway4XXAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-api-4xx-errors"
+      AlarmDescription: API Gateway 4XX errors
+      MetricName: 4XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref ErrorNotificationsTopic
+      Dimensions:
+        - Name: ApiName
+          Value: !Ref ServerlessApi
+
+  # API Gateway 5XX Errors
+  ApiGateway5XXAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-api-5xx-errors"
+      AlarmDescription: API Gateway 5XX errors
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref ErrorNotificationsTopic
+      Dimensions:
+        - Name: ApiName
+          Value: !Ref ServerlessApi
+
+  # DynamoDB Throttle Alarm
+  DynamoDBThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-dynamodb-throttles"
+      AlarmDescription: DynamoDB throttling events
+      MetricName: ThrottledRequests
+      Namespace: AWS/DynamoDB
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref ErrorNotificationsTopic
+      Dimensions:
+        - Name: TableName
+          Value: !Ref UsersTable
+            # =====================================
+  # CLOUDWATCH LOG GROUPS
+  # =====================================
+
+  # API Handler Log Group
+  ApiHandlerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ApiHandlerFunction}"
+      RetentionInDays: 30
+
+  # Data Processor Log Group
+  DataProcessorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${DataProcessorFunction}"
+      RetentionInDays: 30
+
+  # User Auth Log Group
+  UserAuthLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${UserAuthFunction}"
+      RetentionInDays: 30
+
+  # API Gateway Log Group
+  ApiGatewayLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${ServerlessApi}"
+      RetentionInDays: 30
+
+# Outputs
+Outputs:
+  # API Information
+  ApiGatewayUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/${ApiStageName}"
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-api-url"
+
+  ApiKey:
+    Description: API Key for service access
+    Value: !Ref ApiKey
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-api-key"
+
+  # Lambda Functions
+  UserAuthFunctionArn:
+    Description: User Authentication Function ARN
+    Value: !GetAtt UserAuthFunction.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-user-auth-function-arn"
+
+  DataProcessorFunctionArn:
+    Description: Data Processor Function ARN
+    Value: !GetAtt DataProcessorFunction.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-data-processor-function-arn"
+
+  ApiHandlerFunctionArn:
+    Description: API Handler Function ARN
+    Value: !GetAtt ApiHandlerFunction.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-api-handler-function-arn"
+
+  # Storage Resources
+  DataBucketName:
+    Description: S3 Data Bucket Name
+    Value: !Ref DataBucket
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-data-bucket"
+
+  UsersTableName:
+    Description: Users DynamoDB Table Name
+    Value: !Ref UsersTable
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-users-table"
+
+  # Notification Topics
+  ProcessingNotificationsTopicArn:
+    Description: Processing Notifications SNS Topic ARN
+    Value: !Ref ProcessingNotificationsTopic
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-processing-notifications-topic"
+
+  ErrorNotificationsTopicArn:
+    Description: Error Notifications SNS Topic ARN
+    Value: !Ref ErrorNotificationsTopic
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-error-notifications-topic"
+
+  # Monitoring
+  CloudWatchDashboardUrl:
+    Description: CloudWatch Dashboard URL
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${ProjectName}-${Environment}"
+
+  # Developer Information
+  DeveloperInfo:
+    Description: Project Developer Information
+    Value: "Reaishma N (vra.9618@gmail.com) - https://github.com/Reaishma"
+    
