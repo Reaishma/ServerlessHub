@@ -1,0 +1,925 @@
+# API Gateway Configuration
+swagger: '2.0'
+info:
+  title: Serverless Platform API
+  description: API Gateway configuration for Serverless Platform Dashboard
+  version: 1.0.0
+  contact:
+    name: Reaishma N
+    email: vra.9618@gmail.com
+    url: https://github.com/Reaishma
+
+host: api.serverless-platform.com
+basePath: /v1
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+
+# Security Definitions
+securityDefinitions:
+  Bearer:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: "Bearer token authentication. Format: Bearer {token}"
+  
+  ApiKey:
+    type: apiKey
+    name: X-API-Key
+    in: header
+    description: "API Key for service-to-service authentication"
+
+# Global Security
+security:
+  - Bearer: []
+
+# Paths
+paths:
+  # Authentication Endpoints
+  /auth/login:
+    post:
+      summary: User Login
+      description: Authenticate user and return JWT token
+      security: []  # No authentication required for login
+      parameters:
+        - name: loginRequest
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/LoginRequest'
+      responses:
+        200:
+          description: Login successful
+          schema:
+            $ref: '#/definitions/LoginResponse'
+        401:
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        400:
+          description: Bad request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserAuthFunction.Arn}/invocations'
+        responses:
+          default:
+            statusCode: 200
+
+  /auth/register:
+    post:
+      summary: User Registration
+      description: Register new user account
+      security: []  # No authentication required for registration
+      parameters:
+        - name: registerRequest
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/RegisterRequest'
+      responses:
+        201:
+          description: User created successfully
+          schema:
+            $ref: '#/definitions/LoginResponse'
+        409:
+          description: User already exists
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        400:
+          description: Bad request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserAuthFunction.Arn}/invocations'
+
+  /auth/verify:
+    get:
+      summary: Verify Token
+      description: Verify JWT token validity
+      responses:
+        200:
+          description: Token is valid
+          schema:
+            $ref: '#/definitions/VerifyResponse'
+        401:
+          description: Invalid or expired token
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserAuthFunction.Arn}/invocations'
+
+  # Cloud Functions Endpoints
+  /functions:
+    get:
+      summary: List Cloud Functions
+      description: Get all deployed cloud functions
+      parameters:
+        - name: status
+          in: query
+          type: string
+          description: Filter by function status
+        - name: runtime
+          in: query
+          type: string
+          description: Filter by runtime
+      responses:
+        200:
+          description: List of functions
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/CloudFunction'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+    post:
+      summary: Create Cloud Function
+      description: Deploy a new cloud function
+      parameters:
+        - name: functionData
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateFunctionRequest'
+      responses:
+        201:
+          description: Function created successfully
+          schema:
+            $ref: '#/definitions/CloudFunction'
+        400:
+          description: Invalid function data
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+  /functions/{functionId}:
+    get:
+      summary: Get Cloud Function
+      description: Get details of a specific cloud function
+      parameters:
+        - name: functionId
+          in: path
+          required: true
+          type: string
+          description: Function ID
+      responses:
+        200:
+          description: Function details
+          schema:
+            $ref: '#/definitions/CloudFunction'
+        404:
+          description: Function not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+    put:
+      summary: Update Cloud Function
+      description: Update an existing cloud function
+      parameters:
+        - name: functionId
+          in: path
+          required: true
+          type: string
+          description: Function ID
+        - name: functionData
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateFunctionRequest'
+      responses:
+        200:
+          description: Function updated successfully
+          schema:
+            $ref: '#/definitions/CloudFunction'
+        404:
+          description: Function not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+    delete:
+      summary: Delete Cloud Function
+      description: Delete a cloud function
+      parameters:
+        - name: functionId
+          in: path
+          required: true
+          type: string
+          description: Function ID
+      responses:
+        200:
+          description: Function deleted successfully
+          schema:
+            $ref: '#/definitions/SuccessResponse'
+        404:
+          description: Function not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+  # API Endpoints Management
+  /endpoints:
+    get:
+      summary: List API Endpoints
+      description: Get all managed API endpoints
+      responses:
+        200:
+          description: List of endpoints
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ApiEndpoint'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+  /endpoints/test:
+    post:
+      summary: Test API Endpoint
+      description: Test an external API endpoint
+      parameters:
+        - name: testRequest
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/EndpointTestRequest'
+      responses:
+        200:
+          description: Test completed
+          schema:
+            $ref: '#/definitions/EndpointTestResponse'
+        400:
+          description: Invalid test request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+  # Firestore Database Endpoints
+  /collections:
+    get:
+      summary: List Collections
+      description: Get all Firestore collections
+      responses:
+        200:
+          description: List of collections
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/FirestoreCollection'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+    post:
+      summary: Create Collection
+      description: Create a new Firestore collection
+      parameters:
+        - name: collectionData
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateCollectionRequest'
+      responses:
+        201:
+          description: Collection created successfully
+          schema:
+            $ref: '#/definitions/FirestoreCollection'
+        400:
+          description: Invalid collection data
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+  /collections/{collectionId}/documents:
+    get:
+      summary: List Documents
+      description: Get documents from a collection
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          type: string
+          description: Collection ID
+        - name: limit
+          in: query
+          type: integer
+          description: Maximum number of documents to return
+      responses:
+        200:
+          description: List of documents
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/FirestoreDocument'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+    post:
+      summary: Create Document
+      description: Create a new document in a collection
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          type: string
+          description: Collection ID
+        - name: documentData
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateDocumentRequest'
+      responses:
+        201:
+          description: Document created successfully
+          schema:
+            $ref: '#/definitions/FirestoreDocument'
+        400:
+          description: Invalid document data
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+  # Logging Endpoints
+  /logs:
+    get:
+      summary: Get Logs
+      description: Retrieve application logs with filtering
+      parameters:
+        - name: service
+          in: query
+          type: string
+          description: Filter by service name
+        - name: level
+          in: query
+          type: string
+          description: Filter by log level
+          enum: [ERROR, WARNING, INFO, DEBUG]
+        - name: limit
+          in: query
+          type: integer
+          description: Maximum number of logs to return
+          default: 50
+        - name: startTime
+          in: query
+          type: string
+          format: date-time
+          description: Start time for log range
+        - name: endTime
+          in: query
+          type: string
+          format: date-time
+          description: End time for log range
+      responses:
+        200:
+          description: List of log entries
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/LogEntry'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+  # IAM Endpoints
+  /iam/users:
+    get:
+      summary: List IAM Users
+      description: Get all IAM users
+      responses:
+        200:
+          description: List of users
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/IamUser'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+    post:
+      summary: Create IAM User
+      description: Create a new IAM user
+      parameters:
+        - name: userData
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateIamUserRequest'
+      responses:
+        201:
+          description: User created successfully
+          schema:
+            $ref: '#/definitions/IamUser'
+        400:
+          description: Invalid user data
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations'
+
+# Data Models
+definitions:
+  # Authentication Models
+  LoginRequest:
+    type: object
+    required:
+      - email
+      - password
+    properties:
+      email:
+        type: string
+        format: email
+        description: User email address
+      password:
+        type: string
+        description: User password
+
+  RegisterRequest:
+    type: object
+    required:
+      - email
+      - password
+      - name
+    properties:
+      email:
+        type: string
+        format: email
+        description: User email address
+      password:
+        type: string
+        minLength: 8
+        description: User password
+      name:
+        type: string
+        description: User full name
+      role:
+        type: string
+        enum: [user, admin, viewer]
+        default: user
+        description: User role
+
+  LoginResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        description: Success message
+      token:
+        type: string
+        description: JWT access token
+      user:
+        $ref: '#/definitions/User'
+
+  VerifyResponse:
+    type: object
+    properties:
+      valid:
+        type: boolean
+        description: Token validity status
+      user:
+        $ref: '#/definitions/User'
+
+  User:
+    type: object
+    properties:
+      userId:
+        type: string
+        description: Unique user identifier
+      email:
+        type: string
+        format: email
+        description: User email address
+      name:
+        type: string
+        description: User full name
+      role:
+        type: string
+        description: User role
+
+  # Cloud Function Models
+  CloudFunction:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Function ID
+      name:
+        type: string
+        description: Function name
+      runtime:
+        type: string
+        description: Runtime environment
+      trigger:
+        type: string
+        description: Trigger type
+      status:
+        type: string
+        enum: [Active, Inactive, Error]
+        description: Function status
+      code:
+        type: string
+        description: Function source code
+      deployed:
+        type: string
+        format: date-time
+        description: Deployment timestamp
+      createdAt:
+        type: string
+        format: date-time
+        description: Creation timestamp
+
+  CreateFunctionRequest:
+    type: object
+    required:
+      - name
+      - runtime
+      - trigger
+      - code
+    properties:
+      name:
+        type: string
+        description: Function name
+      runtime:
+        type: string
+        enum: ['Node.js 18', 'Python 3.9', 'Go 1.19', 'Java 11']
+        description: Runtime environment
+      trigger:
+        type: string
+        enum: ['HTTP', 'Cloud Storage', 'Cloud Pub/Sub', 'Cloud Firestore']
+        description: Trigger type
+      code:
+        type: string
+        description: Function source code
+
+  UpdateFunctionRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Function name
+      runtime:
+        type: string
+        description: Runtime environment
+      trigger:
+        type: string
+        description: Trigger type
+      code:
+        type: string
+        description: Function source code
+      status:
+        type: string
+        description: Function status
+
+  # API Endpoint Models
+  ApiEndpoint:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Endpoint ID
+      path:
+        type: string
+        description: Endpoint path
+      method:
+        type: string
+        description: HTTP method
+      status:
+        type: string
+        enum: [Healthy, Slow, Error]
+        description: Endpoint status
+      requestsPerMin:
+        type: integer
+        description: Requests per minute
+      avgResponseTime:
+        type: integer
+        description: Average response time in milliseconds
+
+  EndpointTestRequest:
+    type: object
+    required:
+      - method
+      - url
+    properties:
+      method:
+        type: string
+        enum: [GET, POST, PUT, DELETE]
+        description: HTTP method
+      url:
+        type: string
+        format: uri
+        description: Endpoint URL
+      headers:
+        type: string
+        description: Request headers (as string)
+      body:
+        type: string
+        description: Request body
+
+  EndpointTestResponse:
+    type: object
+    properties:
+      status:
+        type: integer
+        description: HTTP status code
+      responseTime:
+        type: integer
+        description: Response time in milliseconds
+      response:
+        type: object
+        description: Response data
+      timestamp:
+        type: string
+        format: date-time
+        description: Test timestamp
+
+  # Firestore Models
+  FirestoreCollection:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Collection ID
+      name:
+        type: string
+        description: Collection name
+      documentCount:
+        type: integer
+        description: Number of documents in collection
+
+  CreateCollectionRequest:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        description: Collection name
+
+  FirestoreDocument:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Document ID
+      collectionId:
+        type: string
+        description: Parent collection ID
+      documentId:
+        type: string
+        description: Document identifier
+      data:
+        type: object
+        description: Document data
+      createdAt:
+        type: string
+        format: date-time
+        description: Creation timestamp
+      updatedAt:
+        type: string
+        format: date-time
+        description: Last update timestamp
+
+  CreateDocumentRequest:
+    type: object
+    required:
+      - documentId
+      - data
+    properties:
+      documentId:
+        type: string
+        description: Document identifier
+      data:
+        type: object
+        description: Document data
+
+  # Logging Models
+  LogEntry:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Log entry ID
+      service:
+        type: string
+        description: Service name
+      level:
+        type: string
+        enum: [ERROR, WARNING, INFO, DEBUG]
+        description: Log level
+      message:
+        type: string
+        description: Log message
+      timestamp:
+        type: string
+        format: date-time
+        description: Log timestamp
+
+  # IAM Models
+  IamUser:
+    type: object
+    properties:
+      id:
+        type: string
+        description: User ID
+      email:
+        type: string
+        format: email
+        description: User email
+      role:
+        type: string
+        description: User role
+      status:
+        type: string
+        enum: [Active, Inactive, Pending]
+        description: User status
+      createdAt:
+        type: string
+        format: date-time
+        description: Creation timestamp
+
+  CreateIamUserRequest:
+    type: object
+    required:
+      - email
+      - role
+    properties:
+      email:
+        type: string
+        format: email
+        description: User email
+      role:
+        type: string
+        description: User role
+
+  # Common Models
+  ErrorResponse:
+    type: object
+    properties:
+      error:
+        type: string
+        description: Error message
+      message:
+        type: string
+        description: Detailed error description
+
+  SuccessResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: Operation success status
+      message:
+        type: string
+        description: Success message
+
+# API Gateway Extensions
+x-amazon-apigateway-cors:
+  allowOrigins:
+    - "*"
+  allowHeaders:
+    - "Content-Type"
+    - "Authorization"
+    - "X-Amz-Date"
+    - "X-Api-Key"
+    - "X-Amz-Security-Token"
+  allowMethods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+  allowCredentials: true
+
+x-amazon-apigateway-request-validators:
+  all:
+    validateRequestBody: true
+    validateRequestParameters: true
+  params-only:
+    validateRequestBody: false
+    validateRequestParameters: true
+
+x-amazon-apigateway-gateway-responses:
+  DEFAULT_4XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+      gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+  DEFAULT_5XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+      gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+      
