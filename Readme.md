@@ -418,8 +418,6 @@ npm run deploy:container
 
 ## 🤝 Contributing
 
-We welcome contributions!
-
 
 ### Development Process
 1. Fork the repository
