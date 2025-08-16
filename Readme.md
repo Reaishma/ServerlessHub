@@ -8,7 +8,7 @@ A complete serverless platform simulating Google Cloud Platform services, built 
 ![Infrastructure](https://img.shields.io/badge/Infrastructure-CloudFormation-yellow)
 ![License](https://img.shields.io/badge/License-MIT-red)
 
-## 🎯 Live Demo
+# 🎯 Live Demo
 
 **Dashboard Interface**: [View Live Demo]( https://reaishma.github.io/ServerlessHub/)
 
