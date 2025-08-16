@@ -10,7 +10,7 @@ A complete serverless platform simulating Google Cloud Platform services, built 
 
 # 🎯 Live Demo
 
-**Dashboard Interface**: [View Live Demo]-  https://reaishma.github.io/ServerlessHub/
+**View Live Interface**: https://reaishma.github.io/ServerlessHub/
 
 ## 🚀 Features
 
