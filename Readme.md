@@ -25,6 +25,9 @@ A complete serverless platform simulating Google Cloud Platform services, built 
 - **Real-time Logging** - CloudWatch integration with filtering and monitoring
 - **IAM & Security** - Role-based access control and security policy management
 
+![firestore](https://github.com/Reaishma/ServerlessHub/blob/main/Screenshot_20250903-172236_1.jpg)
+
+
 ### Technical Highlights
 - **Serverless Architecture** - 100% serverless using AWS Lambda, API Gateway, and DynamoDB
 - **Modern Frontend** - React 18 with TypeScript and Tailwind CSS
