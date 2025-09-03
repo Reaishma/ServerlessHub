@@ -242,7 +242,7 @@ Create new user account
 
 ### Cloud Functions
 
-    ![cloud function](https://github.com/Reaishma/ServerlessHub/blob/main/Screenshot_20250903-172212_1.jpg)
+![cloud function](https://github.com/Reaishma/ServerlessHub/blob/main/Screenshot_20250903-172212_1.jpg)
 
 #### GET /api/functions
 List all deployed functions
